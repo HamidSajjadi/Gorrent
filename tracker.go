@@ -4,9 +4,12 @@ import (
 	bencode "github.com/jackpal/bencode-go"
 	"github.com/pkg/errors"
 	"io"
+	"net/url"
+	"strconv"
 )
 
-const SHA1_LENGTH = 20
+const Sha1Length = 20
+const DownloaderPort = 6881
 
 type files struct {
 	Length int      `bencode:"length"`
@@ -31,6 +34,7 @@ type TorrentInfo struct {
 	Name        string
 	PieceLength int32
 	Pieces      []string
+	peerID      string
 }
 
 func Open(r io.Reader) (*torrent, error) {
@@ -53,11 +57,27 @@ func (t *torrent) ToTorrentInfo() *TorrentInfo {
 	return torrentInfo
 }
 
+func (tInfo *TorrentInfo) CreateTrackerURL(port int) (string, error) {
+	base, err := url.Parse(tInfo.Announce)
+	if err != nil {
+		return "", err
+	}
+	values := url.Values{}
+	values.Add("peer_id", tInfo.peerID)
+	values.Add("port", strconv.Itoa(DownloaderPort))
+	values.Add("uploaded", "0")
+	values.Add("downloaded", "0")
+	values.Add("left", "0")
+	values.Add("event", "started")
+	base.RawQuery = values.Encode()
+	return base.String(), nil
+}
+
 func chunkPieces(pieces string) []string {
-	sliceSize := len(pieces) / SHA1_LENGTH
+	sliceSize := len(pieces) / Sha1Length
 	chunkedPieces := make([]string, sliceSize)
 	for i := 0; i < sliceSize; i++ {
-		chunkedPieces[i] = pieces[i*SHA1_LENGTH : (i+1)*SHA1_LENGTH]
+		chunkedPieces[i] = pieces[i*Sha1Length : (i+1)*Sha1Length]
 	}
 
 	return chunkedPieces

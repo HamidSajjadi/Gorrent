@@ -18,6 +18,19 @@ func TestOpen(t *testing.T) {
 	data.ToTorrentInfo()
 }
 
+func TestTorrentInfo_CreateTrackerURL(t *testing.T) {
+	tInfo := TorrentInfo{
+		Announce: "http://test.com",
+		peerID:   "random-peer-id",
+	}
+	expected := "http://test.com?downloaded=0&event=started&left=0&peer_id=random-peer-id&port=6881&uploaded=0"
+
+	res, err := tInfo.CreateTrackerURL(6881)
+	assert.Nil(t, err, "no error creating tracker file")
+	assert.NotEmpty(t, res)
+	assert.Equal(t, expected, res)
+}
+
 func TestTorrent_ToTorrentInfo(t *testing.T) {
 
 }
